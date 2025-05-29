@@ -4,6 +4,55 @@
 
 A JupyterLab extension that tracks a user's current notebook and cell.
 
+## Usage
+
+A simple frontend extension that adds `activeCellId` and `notebookPath` to each client's awareness state.
+
+Here is an example of the awareness structure in JSON: 
+
+```json
+{
+  "4233401820": {
+    "user": {
+      "username": "960fe034b7b847dfbee15eede12caac7",
+      "name": "Anonymous Kale",
+      "display_name": "Anonymous Kale",
+      "initials": "AK",
+      "avatar_url": null,
+      "color": "var(--jp-collaborator-color5)"
+    },
+    "activeCellId": "42768507-1132-43fb-86ba-980a4e73e490",
+    "notebookPath": "Untitled0.ipynb",
+    "cursors": [
+      {
+        "anchor": {
+          "type": {
+            "client": 2431406065,
+            "clock": 6
+          },
+          "tname": null,
+          "item": null,
+          "assoc": 0
+        },
+        "head": {
+          "type": {
+            "client": 2431406065,
+            "clock": 6
+          },
+          "tname": null,
+          "item": null,
+          "assoc": 0
+        },
+        "primary": true,
+        "empty": true
+      }
+    ]
+  }
+}
+```
+
+
+
 ## Requirements
 
 - JupyterLab >= 4.0.0
