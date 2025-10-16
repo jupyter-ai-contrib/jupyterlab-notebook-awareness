@@ -1,6 +1,6 @@
 {
     "name": "jupyterlab-notebook-awareness",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "A JupyterLab extension that tracks a user's current notebook and cell.",
     "keywords": [
         "jupyter",
