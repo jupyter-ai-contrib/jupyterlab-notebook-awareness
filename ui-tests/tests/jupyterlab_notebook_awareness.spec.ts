@@ -4,8 +4,7 @@ test('should load the extension', async ({ page }) => {
   // Check that the extension plugin is registered
   const plugins = await page.evaluate(() => {
     return Array.from(
-      (window as any).jupyterapp.serviceManager.builder?.registeredPlugins ||
-        []
+      (window as any).jupyterapp.serviceManager.builder?.registeredPlugins || []
     );
   });
 
