@@ -6,9 +6,18 @@ A JupyterLab extension that tracks a user's current notebook and cell.
 
 ## Usage
 
-A simple frontend extension that adds `activeCellId` and `notebookPath` to each client's awareness state.
+A JupyterLab frontend extension that tracks user awareness by adding `activeCellId` and `notebookPath` to each client's collaborative awareness state. This enables applications to know which notebook and cell each user is currently viewing.
 
-Here is an example of the awareness structure in JSON: 
+### Awareness State Schema
+
+The extension adds the following fields to each client's awareness state:
+
+- **`activeCellId`** (string | null): The unique ID of the currently active cell the user is viewing
+- **`notebookPath`** (string | null): The file path of the notebook the user has open
+
+### Example Awareness Structure
+
+Here is an example of the complete awareness structure in JSON with multiple users:
 
 ```json
 {
@@ -22,7 +31,7 @@ Here is an example of the awareness structure in JSON:
       "color": "var(--jp-collaborator-color5)"
     },
     "activeCellId": "42768507-1132-43fb-86ba-980a4e73e490",
-    "notebookPath": "Untitled0.ipynb",
+    "notebookPath": "data_analysis.ipynb",
     "cursors": [
       {
         "anchor": {
@@ -47,11 +56,47 @@ Here is an example of the awareness structure in JSON:
         "empty": true
       }
     ]
+  },
+  "1582940372": {
+    "user": {
+      "username": "alice_researcher",
+      "name": "Alice Smith",
+      "display_name": "Alice Smith",
+      "initials": "AS",
+      "avatar_url": "https://example.com/avatar.jpg",
+      "color": "var(--jp-collaborator-color2)"
+    },
+    "activeCellId": "b8f3e729-4891-4c2a-9876-543210fedcba",
+    "notebookPath": "machine_learning.ipynb",
+    "cursors": []
   }
 }
 ```
 
+### State Updates
 
+The awareness state is automatically updated when:
+
+- A user opens a notebook (sets `notebookPath`)
+- A user clicks on a different cell (updates `activeCellId`)
+- A user switches between notebooks (updates both fields)
+- A user refreshes the page (restores state when notebook loads)
+
+### Accessing Awareness Data
+
+You can access the awareness data programmatically in JupyterLab:
+
+```typescript
+// Get the current notebook's awareness
+const notebook = notebookTracker.currentWidget;
+const awareness = notebook?.model?.sharedModel?.awareness;
+
+// Get all awareness states
+const allStates = awareness?.getStates();
+
+// Get local user's state
+const localState = awareness?.getLocalState();
+```
 
 ## Requirements
 

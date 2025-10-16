@@ -16,6 +16,9 @@ test('should emit an activation console message', async ({ page }) => {
   await page.goto();
 
   expect(
-    logs.filter(s => s === 'JupyterLab extension jupyterlab-notebook-awareness is activated!')
+    logs.filter(
+      s =>
+        s === 'JupyterLab extension jupyterlab-notebook-awareness is activated!'
+    )
   ).toHaveLength(1);
 });
