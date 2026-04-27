@@ -150,6 +150,24 @@ const plugin: JupyterFrontEndPlugin<void> = {
     if (notebookTracker.currentWidget) {
       updateAwarenessState(notebookTracker.currentWidget);
     }
+
+    // Periodically re-apply awareness state to handle room restarts.
+    // After server-side GC frees and recreates a room, the new awareness
+    // object is empty. The event-driven listeners above won't fire until
+    // the user interacts, leaving a gap where MCP tools can't find the
+    // active notebook. This heartbeat closes that gap.
+    setInterval(() => {
+      const notebook = notebookTracker.currentWidget;
+      if (!notebook?.model?.sharedModel?.awareness) {
+        return;
+      }
+      const awareness = notebook.model.sharedModel.awareness;
+      const localState = awareness.getLocalState();
+      const expectedPath = notebook.context?.path || null;
+      if (localState?.notebookPath !== expectedPath) {
+        updateAwarenessState(notebook);
+      }
+    }, 10000);
   }
 };
 
