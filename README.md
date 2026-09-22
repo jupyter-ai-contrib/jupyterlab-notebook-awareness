@@ -6,7 +6,7 @@ A JupyterLab extension that tracks a user's current notebook and cell.
 
 ## Usage
 
-A JupyterLab frontend extension that tracks user awareness by adding `activeCellId` and `notebookPath` to each client's collaborative awareness state. This enables applications to know which notebook and cell each user is currently viewing.
+A JupyterLab frontend extension that tracks user awareness by adding `activeCellId` and `notebookPath` to each client's collaborative awareness state, and, when a global awareness is available, `notebookPath` to the global awareness state (see [Global Awareness](#global-awareness)). This enables applications to know which notebook and cell each user is currently viewing.
 
 ### Awareness State Schema
 
@@ -80,7 +80,36 @@ The awareness state is automatically updated when:
 - A user opens a notebook (sets `notebookPath`)
 - A user clicks on a different cell (updates `activeCellId`)
 - A user switches between notebooks (updates both fields)
+- A user renames a notebook (updates `notebookPath`)
 - A user refreshes the page (restores state when notebook loads)
+
+### Global Awareness
+
+When `@jupyter/collaboration-extension` provides a global awareness, the extension also writes one field to each client's **global** awareness state (the `IGlobalAwareness` token from `@jupyter/collaborative-drive`; the same state that carries the `user` and `current` fields). That frontend extension ships in the `jupyter-collaboration-ui` package, which jupyter-collaboration installs and which jupyter-server-documents also depends on.
+
+- **`notebookPath`** (string | null): The notebook JupyterLab's notebook tracker considers current: normally the most recently focused notebook, or one opened while no notebook had focus. `null` when there is none.
+
+How the field behaves:
+
+- **Sticky:** jupyter-collaboration's `current` field follows the current main-area widget, so it changes when the user works in a terminal or in a chat opened in the main area. `notebookPath` keeps naming the notebook, so a consumer outside the notebook (a chat assistant, for example) can tell which notebook a client means.
+- **Cleared:** it is `null` when no notebook is open. It can also be `null` while notebooks are still open: when the tracker's current notebook is closed and none of the remaining ones has ever had focus (for example, notebooks opened in the background while another notebook was active).
+- **Per client:** the field is per browser tab. A user with two JupyterLab tabs open publishes two values, and a consumer has to choose between them (for example, the client it is talking to).
+- **Paths:** with jupyter-collaboration 3.x the path carries the `RTC:` drive prefix, as the notebook's own path does there.
+
+Without a global awareness the field is not written and the extension behaves as described above.
+
+The global field is updated when:
+
+- A user opens, switches to or renames a notebook (same as above)
+- A user moves focus to a non-notebook widget such as a chat or a terminal (the field is kept)
+- A user closes their last open notebook (the field clears)
+
+```typescript
+// From a plugin that lists IGlobalAwareness among its requires or optional
+for (const [clientId, state] of globalAwareness.getStates()) {
+  console.log(clientId, state.user?.name, state.notebookPath);
+}
+```
 
 ### Accessing Awareness Data
 
@@ -101,6 +130,7 @@ const localState = awareness?.getLocalState();
 ## Requirements
 
 - JupyterLab >= 4.0.0
+- Optional: `@jupyter/collaboration-extension` (from jupyter-collaboration >= 3.0 or jupyter-collaboration-ui >= 1.0), for the global `notebookPath` field. Without it the field is not written.
 
 ## Install
 
