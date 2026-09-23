@@ -1,18 +1,15 @@
 import { expect, test } from '@jupyterlab/galata';
 
 test('should load the extension', async ({ page }) => {
-  // Check that the extension plugin is registered
-  const plugins = await page.evaluate(() => {
-    return Array.from(
-      (window as any).jupyterapp.serviceManager.builder?.registeredPlugins || []
-    );
-  });
-
-  expect(
-    plugins.some(
-      (plugin: any) =>
-        plugin === 'jupyterlab-notebook-awareness:plugin' ||
-        plugin?.id === 'jupyterlab-notebook-awareness:plugin'
+  // `isPluginActivated` rather than merely `hasPlugin`: a plugin that
+  // registers but never activates (a missing required service, an exception
+  // thrown from `activate`) should fail this test, and `hasPlugin` would not
+  // notice.
+  const activated = await page.evaluate(() =>
+    (window as any).jupyterapp.isPluginActivated(
+      'jupyterlab-notebook-awareness:plugin'
     )
-  ).toBeTruthy();
+  );
+
+  expect(activated).toBe(true);
 });
