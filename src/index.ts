@@ -4,6 +4,10 @@ import {
 } from '@jupyterlab/application';
 import { INotebookTracker, NotebookPanel } from '@jupyterlab/notebook';
 import { Cell } from '@jupyterlab/cells';
+import {
+  createGlobalNotebookPublisher,
+  IAwarenessWriter
+} from './currentnotebook';
 
 /**
  * Command IDs for the extension.
@@ -36,6 +40,32 @@ function updateAwarenessState(
 }
 
 /**
+ * Resolve the global awareness, or null when there is none.
+ *
+ * `IGlobalAwareness` is provided by `@jupyter/collaboration-extension`. Its
+ * token module, `@jupyter/collaborative-drive`, is shared from the host rather
+ * than bundled here (see `sharedPackages` in package.json), so it is imported
+ * lazily. On a host without the module the import rejects, and on one without
+ * a provider the service resolves to null; either way the extension works as
+ * before.
+ */
+function loadGlobalAwareness(
+  app: JupyterFrontEnd
+): Promise<IAwarenessWriter | null> {
+  return import('@jupyter/collaborative-drive')
+    .then(({ IGlobalAwareness }) =>
+      app.resolveOptionalService(IGlobalAwareness)
+    )
+    .catch(reason => {
+      console.debug(
+        'jupyterlab-notebook-awareness: no global awareness',
+        reason
+      );
+      return null;
+    });
+}
+
+/**
  * Initialization data for the jupyterlab-notebook-awareness extension.
  */
 const plugin: JupyterFrontEndPlugin<void> = {
@@ -45,6 +75,23 @@ const plugin: JupyterFrontEndPlugin<void> = {
   requires: [INotebookTracker],
   autoStart: true,
   activate: (app: JupyterFrontEnd, notebookTracker: INotebookTracker) => {
+    // Publish the current notebook to global awareness, when there is one.
+    const publishCurrentNotebook = createGlobalNotebookPublisher(
+      loadGlobalAwareness(app),
+      () => notebookTracker.currentWidget?.context?.path || null,
+      () => {
+        const paths: string[] = [];
+        notebookTracker.forEach(panel => {
+          // A notebook being closed can still be in the tracker while its
+          // handlers run; it must not count as open.
+          if (!panel.isDisposed && panel.context?.path) {
+            paths.push(panel.context.path);
+          }
+        });
+        return paths;
+      }
+    );
+
     // Add commands for fetching current notebook and cell
     app.commands.addCommand(CommandIDs.getCurrentNotebook, {
       label: 'Get Current Notebook',
@@ -110,6 +157,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     notebookTracker.activeCellChanged.connect(
       (tracker: INotebookTracker, cell: Cell | null) => {
         updateAwarenessState(tracker.currentWidget, cell);
+        publishCurrentNotebook();
       }
     );
 
@@ -128,6 +176,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
             }, 100);
           }
         }
+        publishCurrentNotebook();
       }
     );
 
@@ -142,7 +191,14 @@ const plugin: JupyterFrontEndPlugin<void> = {
         // Also set state when the context is ready
         notebook.context.ready.then(() => {
           updateAwarenessState(notebook);
+          publishCurrentNotebook();
         });
+
+        // A rename changes the path without a cell or current-widget change
+        notebook.context.pathChanged.connect(() => {
+          updateAwarenessState(notebook);
+          publishCurrentNotebook();
+        }, notebook);
       }
     );
 
@@ -150,6 +206,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     if (notebookTracker.currentWidget) {
       updateAwarenessState(notebookTracker.currentWidget);
     }
+    publishCurrentNotebook();
   }
 };
 
